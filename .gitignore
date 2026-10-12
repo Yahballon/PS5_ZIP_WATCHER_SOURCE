@@ -1,0 +1,10 @@
+ps5_zip_watcher.elf
+ps5_zip_watcher_host
+PS5_ZIP_WATCHER_PS5.zip
+third_party/miniz/*.c
+third_party/miniz/*.h
+*.o
+
+dist/
+SHA256SUMS.txt
+PS5_ZIP_WATCHER_SOURCE.zip

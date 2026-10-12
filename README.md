@@ -1,4 +1,4 @@
-# PS5 ZIP Watcher 
+# PS5 ZIP Watcher (AI-assisted)
 
 A native PS5 ELF payload that watches `/mnt/usb0/homebrew/` for ZIP archives and installs homebrew updates. Existing files are overwritten; unrelated files are preserved. A ZIP is removed only after a successful installation.
 

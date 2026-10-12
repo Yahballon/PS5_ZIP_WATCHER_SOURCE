@@ -1,0 +1,49 @@
+name: PS5 ZIP Watcher - Build and Release (AI-assisted)
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install toolchain dependencies
+        run: sudo apt-get update && sudo apt-get install -y clang lld make unzip curl zip zlib1g-dev python3
+      - name: Install PS5 payload SDK
+        run: |
+          curl -fLSs --retry 3 https://github.com/ps5-payload-dev/sdk/releases/latest/download/ps5-payload-sdk.zip -o /tmp/sdk.zip
+          sudo unzip -q /tmp/sdk.zip -d /opt
+          test -f /opt/ps5-payload-sdk/toolchain/prospero.mk
+      - name: Fetch miniz compression sources
+        run: bash fetch_miniz.sh
+      - name: Build PS5 ELF payload
+        env:
+          PS5_PAYLOAD_SDK: /opt/ps5-payload-sdk
+        run: make
+      - name: Run host integration tests
+        run: |
+          make host
+          python3 tests/test_watcher.py
+      - name: Package release
+        run: |
+          mkdir -p dist
+          cp ps5_zip_watcher.elf README.md dist/
+          (cd dist && zip -q -9 ../PS5_ZIP_WATCHER_PS5.zip ps5_zip_watcher.elf README.md)
+          sha256sum ps5_zip_watcher.elf PS5_ZIP_WATCHER_PS5.zip > SHA256SUMS.txt
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PS5_ZIP_WATCHER_PS5
+          path: |
+            PS5_ZIP_WATCHER_PS5.zip
+            ps5_zip_watcher.elf
+            SHA256SUMS.txt
+      - name: Publish tagged GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" PS5_ZIP_WATCHER_PS5.zip ps5_zip_watcher.elf SHA256SUMS.txt --title "PS5 ZIP Watcher ${GITHUB_REF_NAME} (AI-assisted)" --notes "AI-assisted release. Host integration tests and PS5 cross-build passed. Real PS5 execution has not been verified."
